@@ -16,8 +16,6 @@ class TCPServer {
  private:
     int servSock;
 
-    void handleClient(int clntSocket);
-
  public:
     explicit TCPServer(unsigned short port);
     ~TCPServer();
