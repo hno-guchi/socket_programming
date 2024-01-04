@@ -1,4 +1,5 @@
-#include "TCPEchoServer.hpp"
+#include "./TCPEchoServer.hpp"
+#include "./utils.hpp"
 
 TCPServer::TCPServer(unsigned short port) {
     if ((servSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
@@ -24,29 +25,6 @@ TCPServer::~TCPServer() {
     close(servSock);
 }
 
-void TCPServer::handleClient(int clntSocket) {
-    char echoBuffer[RCVBUFSIZE] = {0};
-    int recvMsgSize = 0;
-
-    if ((recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0)) < 0) {
-        DieWithError("recv() failed");
-    }
-
-	// std::cout << "recved1...(server)" << std::endl;
-    while (recvMsgSize > 0) {
-        if (send(clntSocket, echoBuffer, recvMsgSize, 0) != recvMsgSize) {
-            DieWithError("send() failed");
-        }
-		// std::cout << "sent...(server)" << std::endl;
-        memset(echoBuffer, 0, RCVBUFSIZE);
-        if ((recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0)) < 0) {
-            DieWithError("recv() failed");
-        }
-		// std::cout << "recved2...(server)" << std::endl;
-    }
-    close(clntSocket);
-}
-
 void TCPServer::startServer() {
     struct sockaddr_in echoClntAddr;
     unsigned int clntLen = 0;
@@ -60,7 +38,7 @@ void TCPServer::startServer() {
             DieWithError("accept() failed");
         }
         std::cout << "Handling client " << inet_ntoa(echoClntAddr.sin_addr) << std::endl;
-        handleClient(clntSock);
+        handleTCPClient(clntSock);
     }
 }
 
