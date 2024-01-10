@@ -5,29 +5,45 @@
 #include <errno.h>
 
 int	main(void) {
-    // ファイルディスクリプタを非ブロッキングモードに設定
-	int	flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-	fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+	// ファイルディスクリプタをノンブロッキングモードに設定
+	int	flags = 0;
 
+	if ((flags = fcntl(STDIN_FILENO, F_GETFL)) == -1) {
+		perror("fcntl");
+		exit(EXIT_FAILURE);
+	}
+	flags |= O_NONBLOCK;
+	if (fcntl(STDIN_FILENO, F_SETFL, flags) == -1) {
+		perror("fcntl");
+		exit(EXIT_FAILURE);
+	}
 	while (1) {
-		char	buffer[1024];
-		ssize_t	bytesRead;
+		sleep(3);
+
+		// char	buffer[1024] = {0};
+		char	buffer[4] = {0};
+		ssize_t	bytes_read = 0;
+
 		errno = 0;
 
-		// 非ブロッキングモードでの読み取り
-		bytesRead = read(STDIN_FILENO, buffer, sizeof(buffer));
+		// ノンブロッキングモードでの読み取り
+		bytes_read = read(STDIN_FILENO, buffer, sizeof(buffer));
 
-		if (bytesRead == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+		if (bytes_read == -1) {
 			perror("read");
-		} else if (bytesRead > 0) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				continue ;
+			} else {
+				exit(EXIT_FAILURE);
+			}
+		} else if (bytes_read > 0) {
 			// データが読み取られた場合
-			printf("Read %zd bytes: %.*s\n", bytesRead, (int)bytesRead, buffer);
+			printf("Read %zd bytes: %s", bytes_read, buffer);
 		} else {
 			// データがない場合
 			printf("No data available.\n");
 			break ;
 		}
-		sleep(3);
 	}
 	return (0);
 }
