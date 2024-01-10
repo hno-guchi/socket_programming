@@ -5,11 +5,11 @@
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
-#include "./utils.hpp"
+#include "../../utils/utils.hpp"
 
 #define RCVBUFSIZE 32
 
-void	handleTCPClient(int clntSocket) {
+void	handleClient(int clntSocket) {
 	char	echoBuffer[RCVBUFSIZE] = {0};
 	int		recvMsgSize = 0;
 

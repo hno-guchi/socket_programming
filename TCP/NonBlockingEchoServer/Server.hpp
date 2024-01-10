@@ -24,7 +24,6 @@ class Server {
 	 void startServer();
 };
 
-void	handleClient(int clntSocket);
 void	DieWithError(const char *errorMessage);
 
 #endif  // SERVER_HPP

@@ -22,8 +22,7 @@ fclean: clean
 
 .PHONY: echo
 echo:
-	$(CXX) $(CXXFLAGS) TCPEchoServer.cpp HandleTCPClient.cpp DieWithError.cpp -o server
-	$(CXX) $(CXXFLAGS) TCPEchoClient.cpp DieWithError.cpp -o client
+	$(CXX) $(CXXFLAGS) ./TCP/EchoServer/Server.cpp ./TCP/EchoServer/handleClient.cpp ./utils/DieWithError.cpp -o server
+	$(CXX) $(CXXFLAGS) ./TCP/EchoServer/Client.cpp ./utils/DieWithError.cpp -o client
 	./server 12345 &
 	./client 127.0.0.1 "Hello World" 12345 &
-	# sleep 3; kill server
