@@ -26,3 +26,10 @@ echo:
 	$(CXX) $(CXXFLAGS) ./TCP/EchoServer/Client.cpp ./utils/DieWithError.cpp -o client
 	./server 12345 &
 	./client 127.0.0.1 "Hello World" 12345 &
+
+.PHONY: non_block
+non_block:
+	$(CXX) $(CXXFLAGS) ./TCP/NonBlockingEchoServer/Server.cpp ./TCP/NonBlockingEchoServer/handleClient.cpp ./utils/DieWithError.cpp -o server
+	$(CXX) $(CXXFLAGS) ./TCP/NonBlockingEchoServer/Client.cpp ./utils/DieWithError.cpp -o client
+	./server 12345
+	# ./client 127.0.0.1 "Hello World" 12345 &

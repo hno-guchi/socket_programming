@@ -1,7 +1,7 @@
-#include "./TCPEchoServer.hpp"
-#include "../../utils.hpp"
+#include "./Server.hpp"
+#include "../../utils/utils.hpp"
 
-TCPServer::TCPServer(unsigned short port) : socketFd_(0) {
+Server::Server(unsigned short port) : socketFd_(0) {
 	this->socketFd_ = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (this->socketFd_ < 0) {
 		DieWithError("socket() failed");
@@ -30,11 +30,11 @@ TCPServer::TCPServer(unsigned short port) : socketFd_(0) {
 	}
 }
 
-TCPServer::~TCPServer() {
+Server::~Server() {
 	close(this->socketFd_);
 }
 
-void TCPServer::startServer() {
+void Server::startServer() {
 	while (1) {
 		sleep(3);
 		struct sockaddr_in	echoClntAddr;
@@ -42,12 +42,12 @@ void TCPServer::startServer() {
 		int					clntSock(0);
 
 		memset(&echoClntAddr, 0, sizeof(echoClntAddr));
-		errno = 0;
 		// block until receive client request
 		clntSock = accept(this->socketFd_, reinterpret_cast<struct sockaddr *>(&echoClntAddr), &clntLen);
 		if (clntSock < 0) {
 			if (errno == EAGAIN || errno == EWOULDBLOCK) {
 				std::cout << "accept() timeout." << std::endl;
+				errno = 0;
 				continue;
 			} else {
 				DieWithError("accept() failed.");
@@ -62,7 +62,7 @@ void TCPServer::startServer() {
 			if (fcntl(clntSock, F_SETFL, flags) < 0) {
 				DieWithError("fcntl() failed");
 			}
-			handleTCPClient(clntSock);
+			handleClient(clntSock);
 		}
 	}
 }
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
 
 	unsigned short	echoServPort = atoi(argv[1]);
 
-	TCPServer	server(echoServPort);
+	Server	server(echoServPort);
 	// std::cout << "listen() success" << std::endl;
 	server.startServer();
 
