@@ -35,8 +35,8 @@ non_block:
 	# ./client 127.0.0.1 "Hello World" 12345 &
 
 .PHONY: select
+select: fclean
 select:
 	$(CXX) $(CXXFLAGS) ./TCP/SelectEchoServer/Server.cpp ./TCP/SelectEchoServer/acceptConnection.cpp ./TCP/SelectEchoServer/createSocket.cpp ./TCP/SelectEchoServer/handleClient.cpp ./utils/DieWithError.cpp -o server
 	$(CXX) $(CXXFLAGS) ./TCP/SelectEchoServer/Client.cpp ./utils/DieWithError.cpp -o client
-	./server 100 3 4 5 6
-	# ./client 127.0.0.1 "Hello World" 12345 &
+	./server 7 3 4 5 6
