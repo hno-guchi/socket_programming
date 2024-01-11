@@ -38,6 +38,7 @@ void	Server::startServer(long timeout) {
 		selTimeout.tv_sec = timeout;
 		selTimeout.tv_usec = 0;
 
+		// blocking
 		if (select(this->maxNumDescriptor_ + 1, &sockSet, NULL, NULL, &selTimeout) == 0) {
 			printf("No echo requests for %ld secs... Server still alive\n", timeout);
 		} else {
