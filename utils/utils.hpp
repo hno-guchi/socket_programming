@@ -2,6 +2,6 @@
 # define UTILS_HPP
 
 void	DieWithError(const char *errorMessage);
-void	handleTCPClient(int clntSocket);
+void	handleClient(int clntSocket);
 
 #endif  // UTILS_HPP

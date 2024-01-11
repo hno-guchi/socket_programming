@@ -17,7 +17,7 @@ void	handleClient(int clntSocket) {
 		if ((recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0)) < 0) {
 			DieWithError("recv() failed 1");
 		}
-		if (recvMsgSize <= 0) {
+		if (recvMsgSize == 0) {
 			break;
 		}
 		if (send(clntSocket, echoBuffer, recvMsgSize, 0) != recvMsgSize) {
