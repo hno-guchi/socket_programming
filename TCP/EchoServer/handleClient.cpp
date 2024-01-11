@@ -10,20 +10,38 @@
 #define RCVBUFSIZE 32
 
 void	handleClient(int clntSocket) {
-	char	echoBuffer[RCVBUFSIZE] = {0};
-	int		recvMsgSize = 0;
+	while (1) {
+		char	echoBuffer[RCVBUFSIZE] = {0};
+		int		recvMsgSize = 0;
 
-	if ((recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0)) < 0) {
-		DieWithError("recv() failed 1");
-	}
-	while (recvMsgSize > 0) {
+		if ((recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0)) < 0) {
+			DieWithError("recv() failed 1");
+		}
+		if (recvMsgSize <= 0) {
+			break;
+		}
 		if (send(clntSocket, echoBuffer, recvMsgSize, 0) != recvMsgSize) {
 			DieWithError("send() failed");
-		}
-		memset(echoBuffer, 0, RCVBUFSIZE);
-		if ((recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0)) < 0) {
-			DieWithError("recv() failed 2");
 		}
 	}
 	close(clntSocket);
 }
+
+// void	handleClient(int clntSocket) {
+// 	char	echoBuffer[RCVBUFSIZE] = {0};
+// 	int		recvMsgSize = 0;
+// 
+// 	if ((recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0)) < 0) {
+// 		DieWithError("recv() failed 1");
+// 	}
+// 	while (recvMsgSize > 0) {
+// 		if (send(clntSocket, echoBuffer, recvMsgSize, 0) != recvMsgSize) {
+// 			DieWithError("send() failed");
+// 		}
+// 		memset(echoBuffer, 0, RCVBUFSIZE);
+// 		if ((recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0)) < 0) {
+// 			DieWithError("recv() failed 2");
+// 		}
+// 	}
+// 	close(clntSocket);
+// }
