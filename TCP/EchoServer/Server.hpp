@@ -10,12 +10,12 @@
 #include <cstdlib>
 #include <cstdio>
 
-#define MAXPENDING 5
-#define RCVBUFSIZE 32
+# define RECV_BUF_SIZE 32
 
 class Server {
  private:
-	 int	socketFd_;
+	 int		socketFd_;
+	 const int	maxPending_;
 
  public:
 	 explicit Server(unsigned short port);
@@ -23,8 +23,5 @@ class Server {
 
 	 void startServer();
 };
-
-void	handleClient(int clntSocket);
-void	DieWithError(const char *errorMessage);
 
 #endif  // SERVER_HPP

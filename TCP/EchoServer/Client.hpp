@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <string>
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
@@ -18,14 +19,12 @@ class Client {
 	 struct sockaddr_in		serverAddr_;
 
  public:
-	 Client(const char *serverIP, unsigned short serverPort);
+	 Client(const std::string& serverIP, unsigned short serverPort);
 	 ~Client();
 
 	 void	connectToServer();
-	 void	sendMessage(const char *message);
+	 void	sendMessage(const std::string& message);
 	 void	receiveMessage();
 };
-
-void	DieWithError(const char *errorMessage);
 
 #endif  // CLIENT_HPP

@@ -21,11 +21,12 @@ fclean: clean
 	$(RM) -r client
 
 .PHONY: echo
+echo: fclean
 echo:
-	$(CXX) $(CXXFLAGS) ./TCP/EchoServer/Server.cpp ./TCP/EchoServer/handleClient.cpp ./utils/DieWithError.cpp -o server
-	$(CXX) $(CXXFLAGS) ./TCP/EchoServer/Client.cpp ./utils/DieWithError.cpp -o client
-	./server 12345
-	# ./client 127.0.0.1 "Hello World" 12345 &
+	$(CXX) $(CXXFLAGS) ./TCP/EchoServer/Server.cpp -o server
+	$(CXX) $(CXXFLAGS) ./TCP/EchoServer/Client.cpp -o client
+	./server
+	# ./client "Hello World"
 
 .PHONY: non_block
 non_block:

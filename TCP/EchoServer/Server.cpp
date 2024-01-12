@@ -1,10 +1,15 @@
 #include "./Server.hpp"
-#include "../../utils/utils.hpp"
 
-Server::Server(unsigned short port) : socketFd_(0) {
+static void fatalError(const std::string message) {
+    perror(message.c_str());
+    exit(EXIT_FAILURE);
+}
+
+Server::Server(unsigned short port) :
+	socketFd_(0), maxPending_(5) {
 	this->socketFd_ = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (this->socketFd_ < 0) {
-		DieWithError("socket() failed");
+		fatalError("socket()");
 	}
 
 	struct sockaddr_in	echoServAddr;
@@ -14,10 +19,10 @@ Server::Server(unsigned short port) : socketFd_(0) {
 	echoServAddr.sin_port = htons(port);
 
 	if (bind(this->socketFd_, reinterpret_cast<struct sockaddr *>(&echoServAddr), sizeof(echoServAddr)) < 0) {
-		DieWithError("bind() failed");
+		fatalError("bind()");
 	}
-	if (listen(this->socketFd_, MAXPENDING) < 0) {
-		DieWithError("listen() failed");
+	if (listen(this->socketFd_, this->maxPending_) < 0) {
+		fatalError("listen()");
 	}
 }
 
@@ -25,33 +30,44 @@ Server::~Server() {
 	close(this->socketFd_);
 }
 
-void Server::startServer() {
+static void	handleClient(int clientSocket) {
 	while (1) {
-		struct sockaddr_in	echoClntAddr;
-		unsigned int		clntLen(sizeof(echoClntAddr));
-		int					clntSock(0);
+		char	buf[RECV_BUF_SIZE] = {0};
+		int		recvMsgSize = 0;
 
-		memset(&echoClntAddr, 0, sizeof(echoClntAddr));
-		// block until receive client request
-		clntSock = accept(this->socketFd_, reinterpret_cast<struct sockaddr *>(&echoClntAddr), &clntLen);
-		if (clntSock < 0) {
-			DieWithError("accept() failed.");
+		// blocking
+		if ((recvMsgSize = recv(clientSocket, buf, RECV_BUF_SIZE, 0)) < 0) {
+			fatalError("recv()");
 		}
-		std::cout << "Handling client " << inet_ntoa(echoClntAddr.sin_addr) << std::endl;
-		handleClient(clntSock);
+		if (recvMsgSize == 0) {
+			break;
+		}
+		if (send(clientSocket, buf, recvMsgSize, 0) != recvMsgSize) {
+			fatalError("send()");
+		}
+	}
+	close(clientSocket);
+}
+
+void	Server::startServer() {
+	while (1) {
+		struct sockaddr_in	clientAddr;
+		unsigned int		clientLen(sizeof(clientAddr));
+		int					clientSocket(0);
+
+		memset(&clientAddr, 0, sizeof(clientAddr));
+		// block until receive client request
+		clientSocket = accept(this->socketFd_, reinterpret_cast<struct sockaddr *>(&clientAddr), &clientLen);
+		if (clientSocket < 0) {
+			fatalError("accept()");
+		}
+		std::cout << "Handling client " << inet_ntoa(clientAddr.sin_addr) << std::endl;
+		handleClient(clientSocket);
 	}
 }
 
-int main(int argc, char *argv[]) {
-	if (argc != 2) {
-		std::cerr << "Usage: " << argv[0] << " <Server Port>\n";
-		exit(1);
-	}
-
-	unsigned short	echoServPort = atoi(argv[1]);
-
-	Server	server(echoServPort);
-	// std::cout << "listen() success" << std::endl;
+int main() {
+	Server	server(8080);
 	server.startServer();
 
 	return (0);
