@@ -1,31 +1,66 @@
-#ifndef CLIENT_HPP
-# define CLIENT_HPP
+#include "./Client.hpp"
 
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <unistd.h>
+Client::Client(const char *serverIP, unsigned short serverPort) : socket_(0) {
+	this->socket_ = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-#include <iostream>
-#include <cstring>
-#include <cstdlib>
-#include <cstdio>
+	if (this->socket_ < 0) {
+		DieWithError("socket() failed");
+	}
+	memset(&this->serverAddr_, 0, sizeof(this->serverAddr_));
+	this->serverAddr_.sin_family = AF_INET;
+	this->serverAddr_.sin_addr.s_addr = inet_addr(serverIP);
+	this->serverAddr_.sin_port = htons(serverPort);
+}
 
-#define RCVBUFSIZE 32
+Client::~Client() {
+	close(this->socket_);
+}
 
-class Client {
- private:
-	 int					socket_;
-	 struct sockaddr_in		serverAddr_;
+void Client::connectToServer() {
+	if (connect(this->socket_, reinterpret_cast<struct sockaddr *>(&this->serverAddr_), sizeof(this->serverAddr_)) < 0) {
+		DieWithError("connect() failed");
+	}
+}
 
- public:
-	 Client(const char *serverIP, unsigned short serverPort);
-	 ~Client();
+void Client::sendMessage(const char *message) {
+	size_t	messageLen = strlen(message);
+	if (send(this->socket_, message, messageLen, 0) != static_cast<int>(messageLen)) {
+		DieWithError("send() sent a different number of bytes than expected");
+	}
+}
 
-	 void	connectToServer();
-	 void	sendMessage(const char *message);
-	 void	receiveMessage();
-};
+void Client::receiveMessage() {
+	char	echoBuffer[RCVBUFSIZE] = {0};
+	int		bytesRcvd = 0;
 
-void	DieWithError(const char *errorMessage);
+	std::cout << "Received: ";
+	while ((bytesRcvd = recv(this->socket_, echoBuffer, RCVBUFSIZE - 1, 0)) > 0) {
+		echoBuffer[bytesRcvd] = '\0';
+		std::cout << echoBuffer << std::endl;
+		memset(echoBuffer, 0, sizeof(echoBuffer));
+    }
 
-#endif  // CLIENT_HPP
+	if (bytesRcvd < 0) {
+		DieWithError("recv() failed or connection closed prematurely");
+	}
+	std::cout << std::endl;
+}
+
+int main(int argc, char *argv[]) {
+	if (argc < 3 || argc > 4) {
+		std::cerr << "Usage: " << argv[0] << " <Server IP> <Echo Word> [<Echo Port>}\n";
+		exit(1);
+	}
+
+	const char		*serverIP = argv[1];
+	const char		*echoString = argv[2];
+	unsigned short	echoServPort = (argc == 4) ? atoi(argv[3]) : 12345;
+
+	Client	client(serverIP, echoServPort);
+
+	client.connectToServer();
+	client.sendMessage(echoString);
+	client.receiveMessage();
+
+	return (0);
+}
