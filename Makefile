@@ -40,3 +40,10 @@ select:
 	$(CXX) $(CXXFLAGS) ./TCP/SelectEchoServer/Server.cpp ./TCP/SelectEchoServer/acceptConnection.cpp ./TCP/SelectEchoServer/createSocket.cpp ./TCP/SelectEchoServer/handleClient.cpp ./utils/DieWithError.cpp -o server
 	$(CXX) $(CXXFLAGS) ./TCP/SelectEchoServer/Client.cpp ./utils/DieWithError.cpp -o client
 	./server 7 3 4 5 6
+
+.PHONY: poll
+poll: fclean
+poll:
+	$(CXX) $(CXXFLAGS) ./TCP/PollEchoServer/Server.cpp ./TCP/PollEchoServer/acceptConnection.cpp ./TCP/PollEchoServer/createSocket.cpp ./TCP/PollEchoServer/handleClient.cpp ./utils/DieWithError.cpp -o server
+	$(CXX) $(CXXFLAGS) ./TCP/PollEchoServer/Client.cpp ./utils/DieWithError.cpp -o client
+	./server 7 3 4 5 6
