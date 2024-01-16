@@ -73,10 +73,10 @@ int main(int argc, char *argv[]) {
 	Client	client("127.0.0.1", 8080);
 
 	client.connectToServer();
-	client.sendMessage(message);
-	client.receiveMessage();
 	while (1) {
-		sleep(1);
+		client.sendMessage(message);
+		client.receiveMessage();
+		sleep(5);
 	}
 	return (0);
 }

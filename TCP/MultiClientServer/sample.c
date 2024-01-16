@@ -39,7 +39,7 @@ int	main(void) {
 	// Server::run();
 	printf("サーバーが %d ポートでリスニングしています...\n", PORT);
 
-	int	client_sockets[MAX_CLIENTS] = {-1};
+	int				client_sockets[MAX_CLIENTS] = {0};
 	struct pollfd	fds[MAX_CLIENTS + 1];
 
 	// サーバーソケットを初期化
@@ -48,7 +48,7 @@ int	main(void) {
 
 	// クライアントソケットを初期化
 	for (int i = 1; i <= MAX_CLIENTS; ++i) {
-		// client_sockets[i - 1] = -1;
+		client_sockets[i - 1] = -1;
 		fds[i].fd = -1;
 		fds[i].events = POLLIN;
 	}
@@ -62,10 +62,14 @@ int	main(void) {
 			perror("poll");
 			exit(EXIT_FAILURE);
 		}
+		if (result == 0) {
+			continue ;
+		}
 		// サーバーソケットに新しい接続があるか確認
 		if (fds[0].revents & POLLIN) {
 			if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
 				perror("accept");
+				close(new_socket);
 				exit(EXIT_FAILURE);
 			}
 			// 新しいクライアントソケットを検出し、fdsおよびclient_socketsに追加
@@ -73,10 +77,15 @@ int	main(void) {
 				if (client_sockets[i - 1] == -1) {
 					client_sockets[i - 1] = new_socket;
 					fds[i].fd = new_socket;
-					printf("新しいクライアントが接続しました。ソケット %d\n", new_socket);
+					dprintf(STDOUT_FILENO, "新しいクライアントが接続しました。ソケット %d\n", new_socket);
 					break;
 				}
 			}
+			// dprintf(STDOUT_FILENO, "client_sockets: ");
+			// for (int i = 0; i < MAX_CLIENTS; ++i) {
+			// 	dprintf(STDOUT_FILENO, "[%d] ", client_sockets[i]);
+			// }
+			// dprintf(STDOUT_FILENO, "\n");
 		}
 		// クライアントソケットにデータがあるか確認
 		for (int i = 1; i <= MAX_CLIENTS; ++i) {
@@ -93,13 +102,10 @@ int	main(void) {
 				} else {
 					// クライアントからのデータを処理
 					printf("クライアントソケット %d からのメッセージ: %s\n", fds[i].fd, buffer);
-					// Send a response back to the client
+
+					// クライアントに応答
 					char response[] = "Server received your message.";
 					send(fds[i].fd, response, strlen(response), 0);
-					printf("クライアントソケット %d を切断しました。\n", fds[i].fd);
-					close(fds[i].fd);
-					client_sockets[i - 1] = -1;
-					fds[i].fd = -1;
 				}
 			}
 		}
