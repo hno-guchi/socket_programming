@@ -13,6 +13,15 @@ Server::Server(unsigned short port) :
 		errorExit("socket: ");
 	}
 
+	int	flags = 0;
+	if ((flags = fcntl(this->socketFd_, F_GETFL, 0)) < 0) {
+		errorExit("fcntl: ");
+	}
+	flags |= O_NONBLOCK;
+	if (fcntl(this->socketFd_, F_SETFL, flags) < 0) {
+		errorExit("fcntl:");
+	}
+
 	this->socketAddress_.sin_family = AF_INET;
 	this->socketAddress_.sin_addr.s_addr = INADDR_ANY;
 	this->socketAddress_.sin_port = htons(port);
@@ -44,22 +53,54 @@ Server::~Server() {
 
 void	Server::run() {
 	while (1) {
+		sleep(1);
 		// poll()を使用してソケットの変更を待機
 		int	result = poll(this->fds_, this->maxClients_ + 1, -1);
-		int	newSocket = -1;
-
+		std::cout << "Throw poll();" << std::endl;
 		if (result == -1) {
 			errorExit("poll: ");
 		}
 		if (result == 0) {
 			continue;
 		}
+		int	newSocket = -1;
 		// サーバーソケットに新しい接続があるか確認
 		if (this->fds_[0].revents & POLLIN) {
-			if ((newSocket = accept(this->socketFd_, reinterpret_cast<struct sockaddr *>(&this->socketAddress_), &this->socketAddressLen_)) < 0) {
-				close(newSocket);
-				errorExit("accept: ");
+			newSocket = accept(this->socketFd_, reinterpret_cast<struct sockaddr *>(&this->socketAddress_), &this->socketAddressLen_);
+			if (newSocket < 0) {
+					close(newSocket);
+					errorExit("accept: ");
+				}
+			int	flags = 0;
+			if ((flags = fcntl(newSocket, F_GETFL, 0)) < 0) {
+				errorExit("fcntl: ");
 			}
+			flags |= O_NONBLOCK;
+			if (fcntl(newSocket, F_SETFL, flags) < 0) {
+				errorExit("fcntl:");
+			}
+			// while (1) {
+			// 	newSocket = accept(this->socketFd_, reinterpret_cast<struct sockaddr *>(&this->socketAddress_), &this->socketAddressLen_);
+			// 	if (newSocket < 0) {
+			// 		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			// 			std::cerr << "accept: " << strerror(errno) << std::endl;
+			// 			errno = 0;
+			// 			continue;
+			// 		} else {
+			// 			close(newSocket);
+			// 			errorExit("accept: ");
+			// 		}
+			// 	}
+			// 	int	flags = 0;
+			// 	if ((flags = fcntl(newSocket, F_GETFL, 0)) < 0) {
+			// 		errorExit("fcntl: ");
+			// 	}
+			// 	flags |= O_NONBLOCK;
+			// 	if (fcntl(newSocket, F_SETFL, flags) < 0) {
+			// 		errorExit("fcntl:");
+			// 	}
+			// 	break;
+			// }
 			// 新しいクライアントソケットを検出し、fdsに追加
 			for (int i = 1; i <= this->maxClients_; ++i) {
 				if (this->fds_[i].fd == -1) {
