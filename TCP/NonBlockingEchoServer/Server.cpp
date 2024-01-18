@@ -1,19 +1,19 @@
 #include "./Server.hpp"
-#include "../../utils/utils.hpp"
+#include "../utils/utils.hpp"
 
 Server::Server(unsigned short port) : socketFd_(0) {
 	this->socketFd_ = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (this->socketFd_ < 0) {
-		DieWithError("socket() failed");
+		fatalError("socket");
 	}
 
 	int	flags = 0;
 	if ((flags = fcntl(this->socketFd_, F_GETFL, 0)) < 0) {
-		DieWithError("fcntl() failed");
+		fatalError("fcntl");
 	}
 	flags |= O_NONBLOCK;
 	if (fcntl(this->socketFd_, F_SETFL, flags) < 0) {
-		DieWithError("fcntl() failed");
+		fatalError("fcntl");
 	}
 
 	struct sockaddr_in	echoServAddr;
@@ -23,10 +23,10 @@ Server::Server(unsigned short port) : socketFd_(0) {
 	echoServAddr.sin_port = htons(port);
 
 	if (bind(this->socketFd_, reinterpret_cast<struct sockaddr *>(&echoServAddr), sizeof(echoServAddr)) < 0) {
-		DieWithError("bind() failed");
+		fatalError("bind");
 	}
 	if (listen(this->socketFd_, MAXPENDING) < 0) {
-		DieWithError("listen() failed");
+		fatalError("listen");
 	}
 }
 
@@ -34,7 +34,54 @@ Server::~Server() {
 	close(this->socketFd_);
 }
 
-void Server::startServer() {
+static void	handleClient(int clntSocket) {
+	while (1) {
+		char	echoBuffer[RCVBUFSIZE] = {0};
+		ssize_t	recvMsgSize = 0;
+
+		while (1) {
+			sleep(2);
+			recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0);
+			if (recvMsgSize < 0) {
+				if (errno == EAGAIN || errno == EWOULDBLOCK) {
+					std::cout << "No data received" << std::endl;
+					errno = 0;
+					recvMsgSize = 0;
+					continue;
+				} else {
+					fatalError("recv");
+				}
+			} else {
+				break;
+			}
+		}
+		if (recvMsgSize == 0) {
+			break;
+		}
+		while (1) {
+			ssize_t	sendMsgSize = 0;
+			sendMsgSize = send(clntSocket, echoBuffer, recvMsgSize, 0);
+			if (sendMsgSize < 0) {
+				if (errno == EAGAIN || errno == EWOULDBLOCK) {
+					std::cout << "send() timeout" << std::endl;
+					errno = 0;
+					sendMsgSize = 0;
+					continue;
+				} else {
+					fatalError("send");
+				}
+			} else if (sendMsgSize != recvMsgSize) {
+				fatalError("send");
+			} else {
+				break;
+			}
+		}
+	}
+	std::cout << "Client disconnected" << std::endl;
+	close(clntSocket);
+}
+
+void Server::run() {
 	while (1) {
 		sleep(3);
 		struct sockaddr_in	echoClntAddr;
@@ -50,34 +97,27 @@ void Server::startServer() {
 				errno = 0;
 				continue;
 			} else {
-				DieWithError("accept() failed.");
+				fatalError("accept");
 			}
 		} else {
 			std::cout << "Handling client " << inet_ntoa(echoClntAddr.sin_addr) << std::endl;
 			int	flags = 0;
 			if ((flags = fcntl(clntSock, F_GETFL, 0)) < 0) {
-				DieWithError("fcntl() failed");
+				fatalError("fcntl");
 			}
 			flags |= O_NONBLOCK;
 			if (fcntl(clntSock, F_SETFL, flags) < 0) {
-				DieWithError("fcntl() failed");
+				fatalError("fcntl");
 			}
 			handleClient(clntSock);
 		}
 	}
 }
 
-int main(int argc, char *argv[]) {
-	if (argc != 2) {
-		std::cerr << "Usage: " << argv[0] << " <Server Port>\n";
-		exit(1);
-	}
-
-	unsigned short	echoServPort = atoi(argv[1]);
-
-	Server	server(echoServPort);
+int main() {
+	Server	server(8080);
 	// std::cout << "listen() success" << std::endl;
-	server.startServer();
+	server.run();
 
 	return (0);
 }
