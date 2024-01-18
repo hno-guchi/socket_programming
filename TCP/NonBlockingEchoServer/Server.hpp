@@ -21,9 +21,7 @@ class Server {
 	 explicit Server(unsigned short port);
 	 ~Server();
 
-	 void startServer();
+	 void	run();
 };
-
-void	DieWithError(const char *errorMessage);
 
 #endif  // SERVER_HPP

@@ -16,6 +16,7 @@
 class Client {
  private:
 	 int					socket_;
+	 size_t					messageSize_;
 	 struct sockaddr_in		serverAddr_;
 
  public:

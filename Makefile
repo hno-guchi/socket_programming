@@ -23,17 +23,17 @@ fclean: clean
 .PHONY: echo
 echo: fclean
 echo:
-	$(CXX) $(CXXFLAGS) ./TCP/EchoServer/Server.cpp -o server
-	$(CXX) $(CXXFLAGS) ./TCP/EchoServer/Client.cpp -o client
+	$(CXX) $(CXXFLAGS) ./TCP/EchoServer/Server.cpp ./TCP/utils/fatalError.cpp -o server
+	$(CXX) $(CXXFLAGS) ./TCP/EchoServer/Client.cpp ./TCP/utils/fatalError.cpp -o client
 	./server
 	# ./client "Hello World"
 
 .PHONY: non_block
 non_block:
-	$(CXX) $(CXXFLAGS) ./TCP/NonBlockingEchoServer/Server.cpp ./TCP/NonBlockingEchoServer/handleClient.cpp ./utils/DieWithError.cpp -o server
-	$(CXX) $(CXXFLAGS) ./TCP/NonBlockingEchoServer/Client.cpp ./utils/DieWithError.cpp -o client
-	./server 12345
-	# ./client 127.0.0.1 "Hello World" 12345 &
+	$(CXX) $(CXXFLAGS) ./TCP/NonBlockingEchoServer/Server.cpp ./TCP/utils/fatalError.cpp -o server
+	$(CXX) $(CXXFLAGS) ./TCP/NonBlockingEchoServer/Client.cpp ./TCP/utils/fatalError.cpp -o client
+	./server
+	# ./client "Hello World" &
 
 .PHONY: select
 select: fclean
