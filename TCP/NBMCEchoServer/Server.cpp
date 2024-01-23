@@ -18,6 +18,7 @@ Server::Server(unsigned short port) :
 		fatalError("fcntl");
 	}
 
+	memset(&this->socketAddress_, 0, sizeof(this->socketAddress_));
 	this->socketAddress_.sin_family = AF_INET;
 	this->socketAddress_.sin_addr.s_addr = INADDR_ANY;
 	this->socketAddress_.sin_port = htons(port);
@@ -54,7 +55,6 @@ Server::~Server() {
 
 void	Server::run() {
 	while (1) {
-		// sleep(1);
 		// poll()を使用して待機
 		int	result = poll(this->fds_, this->maxClients_ + 1, 3 * 1000);
 		if (result == -1) {
@@ -105,7 +105,7 @@ void	Server::run() {
 
 					while (1) {
 						sleep(2);
-						recvMsgSize = recv(this->fds_[i].fd, buffer, sizeof(buffer), 0);
+						recvMsgSize = recv(this->fds_[i].fd, buffer, sizeof(buffer), MSG_DONTWAIT);
 						if (recvMsgSize < 0) {
 							if (errno == EAGAIN || errno == EWOULDBLOCK) {
 								std::cout << "No data received." << std::endl;
@@ -113,6 +113,11 @@ void	Server::run() {
 								recvMsgSize = 0;
 								continue;
 							} else {
+								// std::cerr << errno << std::endl;
+								if (errno == ECONNRESET) {
+									recvMsgSize = 0;
+									break;
+								}
 								fatalError("recv");
 							}
 						} else {
@@ -148,6 +153,7 @@ void	Server::run() {
 							break;
 						}
 					}
+					break;
 				}
 			}
 		}

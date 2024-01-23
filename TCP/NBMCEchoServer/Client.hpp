@@ -1,6 +1,8 @@
 #ifndef CLIENT_HPP
 # define CLIENT_HPP
 
+#include <fcntl.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
@@ -15,9 +17,9 @@
 
 class Client {
  private:
-	 int					socket_;
+	 int					socketFd_;
 	 size_t					messageSize_;
-	 struct sockaddr_in		serverAddr_;
+	 struct sockaddr_in		serverSocketAddress_;
 
  public:
 	 Client(const std::string& serverIP, unsigned short serverPort);
