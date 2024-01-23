@@ -71,12 +71,12 @@ void Client::receiveMessage() {
 	size_t	totalSizeRecved = 0;
 
 	std::cout << "Received: ";
-	// blocking
 	while (totalSizeRecved < this->messageSize_) {
 		while (1) {
 			char	echoBuffer[RCVBUFSIZE] = {0};
 			int		sizeRecved = 0;
 
+			// Non blocking
 			sizeRecved = recv(this->socketFd_, echoBuffer, RCVBUFSIZE - 1, MSG_DONTWAIT);
 			if (sizeRecved < 0) {
 				if (errno == EAGAIN || errno == EWOULDBLOCK) {
