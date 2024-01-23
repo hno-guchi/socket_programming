@@ -1,6 +1,18 @@
 #include "./Server.hpp"
 #include "../utils/utils.hpp"
 
+static void	setFdFlags(const int &fd, int setFlags) {
+	int	flags = 0;
+
+	if ((flags = fcntl(fd, F_GETFL, 0)) < 0) {
+		fatalError("fcntl");
+	}
+	flags |= setFlags;
+	if (fcntl(fd, F_SETFL, flags) < 0) {
+		fatalError("fcntl");
+	}
+}
+
 Server::Server(unsigned short port) :
 	socketFd_(0), socketAddressLen_(sizeof(this->socketAddress_)), maxClients_(5) {
 	// サーバーソケットの作成
@@ -9,14 +21,7 @@ Server::Server(unsigned short port) :
 		fatalError("socket");
 	}
 
-	int	flags = 0;
-	if ((flags = fcntl(this->socketFd_, F_GETFL, 0)) < 0) {
-		fatalError("fcntl");
-	}
-	flags |= O_NONBLOCK;
-	if (fcntl(this->socketFd_, F_SETFL, flags) < 0) {
-		fatalError("fcntl");
-	}
+	setFdFlags(this->socketFd_, O_NONBLOCK);
 
 	memset(&this->socketAddress_, 0, sizeof(this->socketAddress_));
 	this->socketAddress_.sin_family = AF_INET;
@@ -33,20 +38,29 @@ Server::Server(unsigned short port) :
 	}
 	std::cout << "サーバーが " << port << " ポートでリスニングしています..." << std::endl;
 
-	// サーバーソケットを初期化
 	this->fds_[0].fd = this->socketFd_;
-	this->fds_[0].events = POLLIN;
-	this->fds_[0].revents = 0;
-	// 各クライアントに対応したサーバーソケットを保存する配列を初期化
-	for (int i = 1; i <= this->maxClients_; ++i) {
+	for (int i = 1; i < this->maxClients_; ++i) {
 		this->fds_[i].fd = -1;
+	}
+	this->fds_[this->maxClients_].fd = STDIN_FILENO;
+	for (int i = 0; i <= this->maxClients_; ++i) {
 		this->fds_[i].events = POLLIN;
 		this->fds_[i].revents = 0;
 	}
+	// サーバーソケットを初期化
+	// this->fds_[0].fd = this->socketFd_;
+	// this->fds_[0].events = POLLIN;
+	// this->fds_[0].revents = 0;
+	// 各クライアントに対応したサーバーソケットを保存する配列を初期化
+	// for (int i = 1; i <= this->maxClients_; ++i) {
+	// 	this->fds_[i].fd = -1;
+	// 	this->fds_[i].events = POLLIN;
+	// 	this->fds_[i].revents = 0;
+	// }
 	// STDIN_FILENOは、ノンブロッキングにすべき？
-	this->fds_[this->maxClients_].fd = STDIN_FILENO;
-	this->fds_[this->maxClients_].events = POLLIN;
-	this->fds_[this->maxClients_].revents = 0;
+	// this->fds_[this->maxClients_].fd = STDIN_FILENO;
+	// this->fds_[this->maxClients_].events = POLLIN;
+	// this->fds_[this->maxClients_].revents = 0;
 }
 
 Server::~Server() {
@@ -104,20 +118,19 @@ void	Server::run() {
 					ssize_t		recvMsgSize = 0;
 
 					while (1) {
-						sleep(2);
+						// sleep(2);
 						recvMsgSize = recv(this->fds_[i].fd, buffer, sizeof(buffer), MSG_DONTWAIT);
 						if (recvMsgSize < 0) {
 							if (errno == EAGAIN || errno == EWOULDBLOCK) {
-								std::cout << "No data received." << std::endl;
+								// std::cout << "No data received." << std::endl;
 								errno = 0;
 								recvMsgSize = 0;
 								continue;
+							} else if (errno == ECONNRESET) {
+								recvMsgSize = 0;
+								break;
 							} else {
 								// std::cerr << errno << std::endl;
-								if (errno == ECONNRESET) {
-									recvMsgSize = 0;
-									break;
-								}
 								fatalError("recv");
 							}
 						} else {
