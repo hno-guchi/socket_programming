@@ -1,64 +1,99 @@
 #include "./Client.hpp"
-
-static void fatalError(const std::string message) {
-    perror(message.c_str());
-    exit(EXIT_FAILURE);
-}
+#include "../utils/utils.hpp"
 
 Client::Client(const std::string& serverIP, unsigned short serverPort) :
-	socket_(0), messageSize_(0) {
-	this->socket_ = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	socketFd_(0), messageSize_(0) {
+	this->socketFd_ = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-	if (this->socket_ < 0) {
-		fatalError("socket()");
+	if (this->socketFd_ < 0) {
+		fatalError("socket");
 	}
-	memset(&this->serverAddr_, 0, sizeof(this->serverAddr_));
-	this->serverAddr_.sin_family = AF_INET;
-	this->serverAddr_.sin_addr.s_addr = inet_addr(serverIP.c_str());
-	this->serverAddr_.sin_port = htons(serverPort);
+	int	flags = 0;
+	if ((flags = fcntl(this->socketFd_, F_GETFL, 0)) < 0) {
+		fatalError("fcntl");
+	}
+	flags |= O_NONBLOCK;
+	if (fcntl(this->socketFd_, F_SETFL, flags) < 0) {
+		fatalError("fcntl");
+	}
+
+	memset(&this->serverSocketAddress_, 0, sizeof(this->serverSocketAddress_));
+	this->serverSocketAddress_.sin_family = AF_INET;
+	this->serverSocketAddress_.sin_addr.s_addr = inet_addr(serverIP.c_str());
+	this->serverSocketAddress_.sin_port = htons(serverPort);
 }
 
 Client::~Client() {
-	close(this->socket_);
+	close(this->socketFd_);
 }
 
 void Client::connectToServer() {
-	if (connect(this->socket_, reinterpret_cast<struct sockaddr *>(&this->serverAddr_), sizeof(this->serverAddr_)) < 0) {
-		fatalError("connect()");
+	struct pollfd	pollFd;
+
+	pollFd.fd = this->socketFd_;
+	pollFd.events = POLLOUT;
+
+	if (connect(this->socketFd_, reinterpret_cast<struct sockaddr *>(&this->serverSocketAddress_), sizeof(this->serverSocketAddress_)) < 0) {
+		if (errno == EINPROGRESS) {
+			std::cout << "Connecting..." << std::endl;
+			while (1) {
+				int		pollRet = 0;
+
+				pollRet = poll(&pollFd, 1, 1000);
+				if (pollRet < 0) {
+					fatalError("poll");
+				} else if (pollRet == 0) {
+					std::cout << "No data received." << std::endl;
+					continue;
+				} else {
+					if (pollFd.revents & POLLOUT) {
+						std::cout << "Connection established!" << std::endl;
+						break;
+					}
+				}
+			}
+		} else {
+			fatalError("connect");
+		}
+	} else {
+		std::cout << "Connection established!" << std::endl;
 	}
 }
 
 void Client::sendMessage(const std::string& message) {
-	if (send(this->socket_, message.c_str(), message.size(), 0) != static_cast<ssize_t>(message.size())) {
-		fatalError("send()");
+	if (send(this->socketFd_, message.c_str(), message.size(), 0) != static_cast<ssize_t>(message.size())) {
+		fatalError("send");
 	}
 	this->messageSize_ = message.size();
 }
 
 void Client::receiveMessage() {
-	size_t	totalBytesRecved = 0;
+	size_t	totalSizeRecved = 0;
 
 	std::cout << "Received: ";
 	// blocking
-	while (totalBytesRecved < this->messageSize_) {
-		char	echoBuffer[RCVBUFSIZE] = {0};
-		int		bytesRecved = 0;
-		if ((bytesRecved = recv(this->socket_, echoBuffer, RCVBUFSIZE - 1, 0)) < 0) {
-			fatalError("recv()");
+	while (totalSizeRecved < this->messageSize_) {
+		while (1) {
+			char	echoBuffer[RCVBUFSIZE] = {0};
+			int		sizeRecved = 0;
+
+			sizeRecved = recv(this->socketFd_, echoBuffer, RCVBUFSIZE - 1, MSG_DONTWAIT);
+			if (sizeRecved < 0) {
+				if (errno == EAGAIN || errno == EWOULDBLOCK) {
+					// std::cout << "No data received." << std::endl;
+					errno = 0;
+					continue;
+				} else {
+					fatalError("recv");
+				}
+			} else {
+				echoBuffer[sizeRecved] = '\0';
+				std::cout << echoBuffer << std::flush;
+				totalSizeRecved += sizeRecved;
+				break;
+			}
 		}
-		echoBuffer[bytesRecved] = '\0';
-		std::cout << echoBuffer << std::flush;
-		totalBytesRecved += bytesRecved;
 	}
-	// while ((bytesRecved = recv(this->socket_, echoBuffer, RCVBUFSIZE - 1, 0)) > 0) {
-	// 	echoBuffer[bytesRecved] = '\0';
-	// 	std::cout << echoBuffer << std::flush;
-	// 	memset(echoBuffer, 0, sizeof(echoBuffer));
-	// 	bytesRecved = 0;
-    // }
-	// if (bytesRecved < 0) {
-	// 	fatalError("recv()");
-	// }
 	std::cout << std::endl;
 }
 
