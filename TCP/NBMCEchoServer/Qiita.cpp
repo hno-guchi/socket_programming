@@ -1,5 +1,9 @@
 #include "./Server.hpp"
-#include "../utils/utils.hpp"
+
+static void fatalError(const std::string& message) {
+	std::perror(message.c_str());
+    exit(EXIT_FAILURE);
+}
 
 static void	setFdFlags(const int &fd, int setFlags) {
 	int	flags = 0;
@@ -55,6 +59,61 @@ Server::~Server() {
 	close(this->socketFd_);
 }
 
+static bool	isNonBlockingError() {
+	if (errno == EAGAIN || errno == EWOULDBLOCK) {
+		// std::cout << "No data received." << std::endl;
+		errno = 0;
+		return (true);
+	}
+	return (false);
+}
+
+static ssize_t	recvNonBlocking(const int fd, char *buffer, size_t bufSize) {
+	ssize_t		recvMsgSize = 0;
+
+	while (1) {
+		// sleep(2);
+		recvMsgSize = recv(fd, buffer, bufSize, MSG_DONTWAIT);
+		if (recvMsgSize >= 0) {
+			break;
+		}
+		if (isNonBlockingError()) {
+			recvMsgSize = 0;
+			continue;
+		} else if (errno == ECONNRESET) {
+			recvMsgSize = 0;
+			break;
+		} else {
+			// std::cerr << errno << std::endl;
+			fatalError("recv");
+		}
+	}
+	return (recvMsgSize);
+}
+
+static ssize_t	sendNonBlocking(const int fd, char *buffer, size_t bufSize) {
+	ssize_t		sendMsgSize = 0;
+
+	while (1) {
+		// sleep(2);
+		sendMsgSize = send(fd, buffer, bufSize, MSG_DONTWAIT);
+		if (sendMsgSize >= 0) {
+			break;
+		}
+		if (isNonBlockingError()) {
+			sendMsgSize = 0;
+			continue;
+		} else if (errno == ECONNRESET) {
+			sendMsgSize = 0;
+			break;
+		} else {
+			// std::cerr << errno << std::endl;
+			fatalError("recv");
+		}
+	}
+	return (sendMsgSize);
+}
+
 void	Server::run() {
 	while (1) {
 		// poll()を使用して待機
@@ -97,30 +156,12 @@ void	Server::run() {
 			if (this->fds_[i].fd != -1 && (this->fds_[i].revents & POLLIN)) {
 				while (1) {
 					char		buffer[1024] = {0};
-					ssize_t		recvMsgSize = 0;
 
-					while (1) {
-						// sleep(2);
-						recvMsgSize = recv(this->fds_[i].fd, buffer, sizeof(buffer), MSG_DONTWAIT);
-						if (recvMsgSize < 0) {
-							if (errno == EAGAIN || errno == EWOULDBLOCK) {
-								// std::cout << "No data received." << std::endl;
-								errno = 0;
-								recvMsgSize = 0;
-								continue;
-							} else if (errno == ECONNRESET) {
-								recvMsgSize = 0;
-								break;
-							} else {
-								// std::cerr << errno << std::endl;
-								fatalError("recv");
-							}
-						} else {
-							break;
-						}
-					}
-					// クライアントが切断された場合
+					ssize_t		recvMsgSize = 0;
+					recvMsgSize = recvNonBlocking(this->fds_[i].fd, buffer, sizeof(buffer));
+					// クライアントとの通信が切断された場合
 					if (recvMsgSize == 0) {
+						// disconnectedFd(this->fds_[i].fd);
 						std::cout << "クライアントソケット " << this->fds_[i].fd << " が切断されました。" << std::endl;
 						close(this->fds_[i].fd);
 						this->fds_[i].fd = -1;
@@ -128,25 +169,18 @@ void	Server::run() {
 					}
 					// クライアントからのデータを処理
 					std::cout << "クライアントソケット " << this->fds_[i].fd << " からのメッセージ: " << buffer << std::endl;
-					while (1) {
-						// クライアントに応答
-						ssize_t	sendMsgSize = 0;
 
-						sendMsgSize = send(this->fds_[i].fd, buffer, strlen(buffer), 0);
-						if (sendMsgSize < 0) {
-							if (errno == EAGAIN || errno == EWOULDBLOCK) {
-								std::cout << "No data sent." << std::endl;
-								errno = 0;
-								sendMsgSize = 0;
-								continue;
-							} else {
-								fatalError("send");
-							}
-						} else if (sendMsgSize != recvMsgSize) {
-							fatalError("send");
-						} else {
-							break;
-						}
+					ssize_t	sendMsgSize = 0;
+					sendMsgSize = sendNonBlocking(this->fds_[i].fd, buffer, strlen(buffer));
+					if (recvMsgSize != sendMsgSize) {
+						fatalError("send");
+					}
+					// クライアントとの通信が切断された場合
+					if (sendMsgSize == 0) {
+						// disconnectedFd(this->fds_[i].fd);
+						std::cout << "クライアントソケット " << this->fds_[i].fd << " が切断されました。" << std::endl;
+						close(this->fds_[i].fd);
+						this->fds_[i].fd = -1;
 					}
 					break;
 				}
