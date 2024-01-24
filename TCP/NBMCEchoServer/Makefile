@@ -27,8 +27,5 @@ fclean: clean
 	$(RM) -r server
 	$(RM) -r client
 
-.PHONY: qiita
-qiita: fclean
-qiita:
-	$(CXX) $(CXXFLAGS) ./Qiita.cpp -o server
-	$(CXX) $(CXXFLAGS) ./Client.cpp ../utils/fatalError.cpp -o client
+.PHONY: re
+re: fclean all
