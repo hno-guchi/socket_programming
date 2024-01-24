@@ -13,21 +13,18 @@
 #include <cstdlib>
 #include <cstdio>
 
-#define RCVBUFSIZE 32
-
 class Client {
  private:
 	 int					socketFd_;
-	 size_t					messageSize_;
 	 struct sockaddr_in		serverSocketAddress_;
 
  public:
 	 Client(const std::string& serverIP, unsigned short serverPort);
 	 ~Client();
 
-	 void	connectToServer();
-	 void	sendMessage(const std::string& message);
-	 void	receiveMessage();
+	 void		connectToServer();
+	 ssize_t	sendMessage(const std::string& message);
+	 ssize_t	receiveMessage();
 };
 
 #endif  // CLIENT_HPP
