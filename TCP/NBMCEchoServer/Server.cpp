@@ -126,18 +126,16 @@ void	Server::handleReceivedData(int clientIndex) {
 	ssize_t	recvMsgSize = 0;
 
 	recvMsgSize = recvNonBlocking(clientIndex, buffer, sizeof(buffer) - 1);
-	if (recvMsgSize == 0) {
+	if (recvMsgSize <= 0) {
 		handleClientDisconnect(clientIndex);
-	} else if (recvMsgSize < 0) {
-		fatalError("recv");
+		return;
 	}
 	std::cout << "Client socket " << fds_[clientIndex].fd \
 		<< " message: " << buffer << std::endl;
 	sendMsgSize = sendNonBlocking(clientIndex, buffer, recvMsgSize);
-	if (sendMsgSize == 0) {
+	if (sendMsgSize <= 0) {
 		handleClientDisconnect(clientIndex);
-	} else if (sendMsgSize < 0) {
-		fatalError("send");
+		return;
 	}
 	if (recvMsgSize != sendMsgSize) {
 		fatalError("send");
@@ -160,7 +158,7 @@ ssize_t Server::recvNonBlocking(int clientIndex, char* buffer, \
 			recvMsgSize = 0;
 			continue;
 		} else if (errno == ECONNRESET) {
-			recvMsgSize = 0;
+			recvMsgSize = -1;
 			break;
 		} else {
 			fatalError("recv");
@@ -186,7 +184,7 @@ ssize_t	Server::sendNonBlocking(int clientIndex, const char* buffer, \
 			sendMsgSize = 0;
 			continue;
 		} else if (errno == ECONNRESET) {
-			sendMsgSize = 0;
+			sendMsgSize = -1;
 			break;
 		} else {
 			fatalError("send");
