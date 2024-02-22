@@ -18,7 +18,7 @@ int	main(void) {
 		exit(EXIT_FAILURE);
 	}
 	while (1) {
-		sleep(3);
+		sleep(2);
 
 		// char	buffer[1024] = {0};
 		char	buffer[4] = {0};
@@ -38,7 +38,8 @@ int	main(void) {
 			}
 		} else if (bytes_read > 0) {
 			// データが読み取られた場合
-			printf("Read %zd bytes: %s", bytes_read, buffer);
+			// printf("Read %zd bytes: %s", bytes_read, buffer);
+			printf("%s", buffer);
 		} else {
 			// データがない場合
 			printf("No data available.\n");
@@ -47,3 +48,23 @@ int	main(void) {
 	}
 	return (0);
 }
+
+// Blocking
+// int	main(void) {
+// 	while (1) {
+// 		// char	buffer[1024] = {0};
+// 		char	buffer[4] = {0};
+// 		ssize_t	bytes_read = read(STDIN_FILENO, buffer, sizeof(buffer));
+// 
+// 		if (bytes_read == -1) {
+// 			perror("read");
+// 			exit(EXIT_FAILURE);
+// 		} else if (bytes_read > 0) {
+// 			printf("%s", buffer);
+// 		} else {
+// 			printf("No data available.\n");
+// 			break ;
+// 		}
+// 	}
+// 	return (0);
+// }
